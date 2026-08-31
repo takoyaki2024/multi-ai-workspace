@@ -1,0 +1,25 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiAiWorkspace", "src\MultiAiWorkspace\MultiAiWorkspace.csproj", "{6DA6C81B-25EE-4CB4-B7AF-68AF6F9AF667}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiAiWorkspace.Tests", "tests\MultiAiWorkspace.Tests\MultiAiWorkspace.Tests.csproj", "{E586F091-368A-44DA-8208-538F88CBDE97}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6DA6C81B-25EE-4CB4-B7AF-68AF6F9AF667}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DA6C81B-25EE-4CB4-B7AF-68AF6F9AF667}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DA6C81B-25EE-4CB4-B7AF-68AF6F9AF667}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DA6C81B-25EE-4CB4-B7AF-68AF6F9AF667}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E586F091-368A-44DA-8208-538F88CBDE97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E586F091-368A-44DA-8208-538F88CBDE97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E586F091-368A-44DA-8208-538F88CBDE97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E586F091-368A-44DA-8208-538F88CBDE97}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
