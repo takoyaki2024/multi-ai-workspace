@@ -9,19 +9,19 @@ $desktopDirectory = [Environment]::GetFolderPath('DesktopDirectory')
 $shortcutPath = Join-Path $desktopDirectory 'Multi AI Workspace.lnk'
 $executablePath = Join-Path $publishDirectory 'MultiAiWorkspace.exe'
 
-Write-Host 'Multi AI Workspace をReleaseビルドしています...'
+Write-Host 'Publishing Multi AI Workspace...'
 dotnet publish $projectFile --configuration Release --runtime win-x64 --self-contained false --output $publishDirectory
-if ($LASTEXITCODE -ne 0) { throw 'Release publish に失敗しました。' }
+if ($LASTEXITCODE -ne 0) { throw 'Release publish failed.' }
 
-if (-not (Test-Path -LiteralPath $executablePath)) { throw "実行ファイルが見つかりません: $executablePath" }
+if (-not (Test-Path -LiteralPath $executablePath)) { throw "Executable not found: $executablePath" }
 
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = $executablePath
 $shortcut.WorkingDirectory = $publishDirectory
-$shortcut.Description = 'ChatGPT・Gemini・Claudeを同時に使うデスクトップアプリ'
+$shortcut.Description = 'Multi AI Workspace - ChatGPT, Gemini and Claude'
 $shortcut.Save()
 
 Write-Host ''
-Write-Host 'セットアップが完了しました。' -ForegroundColor Green
-Write-Host "デスクトップの「Multi AI Workspace」から起動できます。"
+Write-Host 'Setup completed successfully.' -ForegroundColor Green
+Write-Host "Desktop shortcut created: $shortcutPath"
