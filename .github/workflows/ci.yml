@@ -2,19 +2,100 @@ name: CI
 
 on:
   push:
+    branches: [main]
+    paths-ignore:
+      - project-memory/PROJECT_STATE.md
   pull_request:
+
+permissions:
+  contents: write
 
 jobs:
   build-and-test:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+
       - name: Restore
+        id: restore
+        continue-on-error: true
         run: dotnet restore MultiAiWorkspace.sln
+
       - name: Build
+        id: build
+        if: steps.restore.outcome == 'success'
+        continue-on-error: true
         run: dotnet build MultiAiWorkspace.sln --configuration Release --no-restore
+
       - name: Test
+        id: test
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
         run: dotnet test MultiAiWorkspace.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+      - name: Update objective PROJECT_STATE fields
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
+        shell: pwsh
+        env:
+          RESTORE_OUTCOME: ${{ steps.restore.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          TEST_OUTCOME: ${{ steps.test.outcome }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          $statePath = 'project-memory/PROJECT_STATE.md'
+          if (-not (Test-Path $statePath)) {
+            throw "Missing $statePath"
+          }
+
+          $build = if ($env:RESTORE_OUTCOME -eq 'success' -and $env:BUILD_OUTCOME -eq 'success') { 'PASS' } else { 'FAIL' }
+          $tests = if ($build -ne 'PASS') { 'NOT_RUN' } elseif ($env:TEST_OUTCOME -eq 'success') { 'PASS' } else { 'FAIL' }
+          $updatedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+
+          $machineBlock = @"
+          <!-- CI_STATE_START -->
+          Build: $build
+          Tests: $tests
+          Run ID: $env:RUN_ID
+          Run URL: $env:RUN_URL
+          Commit SHA: $env:COMMIT_SHA
+          Updated At UTC: $updatedAt
+          <!-- CI_STATE_END -->
+          "@
+
+          $content = Get-Content $statePath -Raw
+          $pattern = '(?s)<!-- CI_STATE_START -->.*?<!-- CI_STATE_END -->'
+          if ($content -notmatch $pattern) {
+            throw 'CI state markers are missing from PROJECT_STATE.md'
+          }
+
+          $newContent = [regex]::Replace($content, $pattern, $machineBlock.Trim())
+          Set-Content -Path $statePath -Value $newContent -Encoding utf8
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add $statePath
+
+          if (-not (git diff --cached --quiet)) {
+            git commit -m 'chore: update CI project state [skip ci]'
+            git push
+          }
+
+      - name: Enforce Build/Test result
+        if: always()
+        shell: pwsh
+        env:
+          RESTORE_OUTCOME: ${{ steps.restore.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          TEST_OUTCOME: ${{ steps.test.outcome }}
+        run: |
+          if ($env:RESTORE_OUTCOME -ne 'success' -or $env:BUILD_OUTCOME -ne 'success' -or $env:TEST_OUTCOME -ne 'success') {
+            throw "CI failed. Restore=$env:RESTORE_OUTCOME Build=$env:BUILD_OUTCOME Tests=$env:TEST_OUTCOME"
+          }
