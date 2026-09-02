@@ -1,0 +1,11 @@
+{
+  "unityExecutable": "AUTO",
+  "projectPath": ".",
+  "smokeExecuteMethod": "REPLACE_WITH_YOUR_NAMESPACE.AutoDevSmokeTest.Run",
+  "mainBranch": "main",
+  "maxAttempts": 3,
+  "sameErrorStop": 2,
+  "totalTimeoutMinutes": 15,
+  "requireCleanWorkingTree": true,
+  "openUnityAfterPass": false
+}
