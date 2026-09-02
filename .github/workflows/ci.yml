@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: windows-latest
@@ -50,6 +54,10 @@ jobs:
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           COMMIT_SHA: ${{ github.sha }}
         run: |
+          # Preserve the newest ChatGPT-owned judgment fields before writing CI facts.
+          git fetch origin main
+          git reset --hard origin/main
+
           $statePath = 'project-memory/PROJECT_STATE.md'
           if (-not (Test-Path $statePath)) {
             throw "Missing $statePath"
