@@ -1,10 +1,10 @@
 # PROJECT_STATE
 
-Status: IN_PROGRESS
+Status: READY_FOR_REAL_WORK
 Current Task: T-003 — Evaluate executable anomaly tracking during real work
 Last Completed: T-002 — Validate CI state writer failure path safely
-Next: Use the fixed anomaly thresholds during real tasks and add executable tracking only if operating data shows it is justified.
-Recommended Action: Begin using this V1 workflow on real development work; record the first threshold event deterministically if one occurs.
+Next: Apply this V1 workflow to a real development task. Record the first real retry/Codex threshold event if one occurs; do not manufacture failures merely to exercise anomaly tracking.
+Recommended Action: Switch to a real development repository and begin a normal task under this workflow.
 
 <!-- CI_STATE_START -->
 Build: PASS
@@ -21,4 +21,3 @@ Failed Attempts: None
 Relevant Files: `.github/workflows/ci.yml`, `scripts/update-project-state.ps1`, `project-memory/*`
 Suspected Cause: None
 Codex Needed: NO
-
