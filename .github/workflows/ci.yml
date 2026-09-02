@@ -43,6 +43,43 @@ jobs:
         continue-on-error: true
         run: dotnet test MultiAiWorkspace.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
 
+      - name: Validate failure-state writer safely
+        shell: pwsh
+        run: |
+          $source = 'project-memory/PROJECT_STATE.md'
+          $fixture = Join-Path $env:RUNNER_TEMP 'PROJECT_STATE.failure-fixture.md'
+          Copy-Item $source $fixture
+
+          $before = Get-Content $fixture -Raw
+          $judgmentPattern = '(?s)\A(.*?)<!-- CI_STATE_START -->'
+          $beforeJudgment = [regex]::Match($before, $judgmentPattern).Groups[1].Value
+
+          ./scripts/update-project-state.ps1 `
+            -StatePath $fixture `
+            -RestoreOutcome 'success' `
+            -BuildOutcome 'failure' `
+            -TestOutcome 'skipped' `
+            -RunId 'failure-validation' `
+            -RunUrl 'local-fixture' `
+            -CommitSha 'fixture' `
+            -UpdatedAtUtc '2000-01-01T00:00:00Z'
+
+          $after = Get-Content $fixture -Raw
+          $afterJudgment = [regex]::Match($after, $judgmentPattern).Groups[1].Value
+
+          if ($beforeJudgment -ne $afterJudgment) {
+            throw 'Failure-path validation changed ChatGPT-owned judgment fields.'
+          }
+          if ($after -notmatch 'Build: FAIL') {
+            throw 'Failure-path validation did not record Build: FAIL.'
+          }
+          if ($after -notmatch 'Tests: NOT_RUN') {
+            throw 'Failure-path validation did not record Tests: NOT_RUN.'
+          }
+          if ((Get-Content $source -Raw) -ne $before) {
+            throw 'Failure-path validation modified the real PROJECT_STATE.md.'
+          }
+
       - name: Update objective PROJECT_STATE fields
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
         shell: pwsh
@@ -58,38 +95,18 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
 
-          $statePath = 'project-memory/PROJECT_STATE.md'
-          if (-not (Test-Path $statePath)) {
-            throw "Missing $statePath"
-          }
-
-          $build = if ($env:RESTORE_OUTCOME -eq 'success' -and $env:BUILD_OUTCOME -eq 'success') { 'PASS' } else { 'FAIL' }
-          $tests = if ($build -ne 'PASS') { 'NOT_RUN' } elseif ($env:TEST_OUTCOME -eq 'success') { 'PASS' } else { 'FAIL' }
-          $updatedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-
-          $machineBlock = @"
-          <!-- CI_STATE_START -->
-          Build: $build
-          Tests: $tests
-          Run ID: $env:RUN_ID
-          Run URL: $env:RUN_URL
-          Commit SHA: $env:COMMIT_SHA
-          Updated At UTC: $updatedAt
-          <!-- CI_STATE_END -->
-          "@
-
-          $content = Get-Content $statePath -Raw
-          $pattern = '(?s)<!-- CI_STATE_START -->.*?<!-- CI_STATE_END -->'
-          if ($content -notmatch $pattern) {
-            throw 'CI state markers are missing from PROJECT_STATE.md'
-          }
-
-          $newContent = [regex]::Replace($content, $pattern, $machineBlock.Trim())
-          Set-Content -Path $statePath -Value $newContent -Encoding utf8
+          ./scripts/update-project-state.ps1 `
+            -StatePath 'project-memory/PROJECT_STATE.md' `
+            -RestoreOutcome $env:RESTORE_OUTCOME `
+            -BuildOutcome $env:BUILD_OUTCOME `
+            -TestOutcome $env:TEST_OUTCOME `
+            -RunId $env:RUN_ID `
+            -RunUrl $env:RUN_URL `
+            -CommitSha $env:COMMIT_SHA
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add $statePath
+          git add project-memory/PROJECT_STATE.md
 
           if (-not (git diff --cached --quiet)) {
             git commit -m 'chore: update CI project state [skip ci]'
